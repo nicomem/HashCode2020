@@ -10,22 +10,31 @@ from concurrent.futures import (
     as_completed
 )
 from multiprocessing import Pool
+from typing import List
+
 
 # Other libs
 import numpy as np
 from tqdm import tqdm
-
-
-# Type definitions
-ComputeOutput = str
-ComputeInput = str
-
 
 class CLIArgs:
     def __init__(self, args):
         self.input_file: Path = args.input
         self.output_file: Path = args.output
 
+
+class Library:
+    def __init__(self, books, signup, ship):
+        self.books: List[int] = books
+        self.signup_time: int = signup
+        self.nb_ship: int = ship
+
+    def __repr__(self):
+        return f'{" ".join(map(str, self.books))}-{self.signup_time}-{self.nb_ship}'
+
+# Type definitions
+ComputeOutput = str
+ComputeInput = List[Library]
 
 def parse_arguments() -> CLIArgs:
     parser = argparse.ArgumentParser()
@@ -45,9 +54,18 @@ def parse_input(file: Path) -> ComputeInput:
     data = file.read_text()
     lines = data.split('\n')
 
-    # TODO: Parse file data in a meaningful way
+    nb_books, nb_libraries, nb_days = map(int, lines[0].strip().split(' '))
+    scores = map(int, lines[1].strip().split(' '))
 
-    return data
+    libraries = []
+    for lib in range(nb_libraries):
+        _, signup, ship = map(int, lines[2 + 2 * lib].strip().split(' '))
+        books = map(int, lines[3 + 2 * lib].strip().split(' '))
+        libraries.append(Library(books, signup, ship))
+
+    print(libraries)
+
+    return libraries
 
 
 def save_output(file: Path, data: str) -> None:
