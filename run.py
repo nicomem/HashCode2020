@@ -139,7 +139,7 @@ def brute_force(input_data: ComputeInput, args) -> ComputeOutput:
 
             books_sent = lib.books[:nb_books]
             cur_score = sum(scores[book] for book in books_sent)
-            output_libs.add_library(offset + i, books_sent)
+            output_libs.add_library(lib.number + i, books_sent)
             save(cur_score)
             recurse(libs[i+1:], rest_days - lib.signup_time, offset + i + 1)
             output_libs.pop()
@@ -157,7 +157,7 @@ def brute_force(input_data: ComputeInput, args) -> ComputeOutput:
 
                 books_sent = lib.books[:nb_books]
                 cur_score = sum(scores[book] for book in books_sent)
-                output_libs.add_library(offset + i, books_sent)
+                output_libs.add_library(lib.number + i, books_sent)
                 save(cur_score)
                 fut.append(exe.submit(recurse, libs[i+1:], rest_days - lib.signup_time, offset + i + 1))
                 output_libs.pop()
