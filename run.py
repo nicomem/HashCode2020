@@ -179,7 +179,70 @@ def compute(input_data: ComputeInput, args: CLIArgs) -> ComputeOutput:
     # - tqdm: Progress bar
     # - np: Numpy for optimizations
 
-    return brute_force(input_data, args)
+    return computeAntoine(input_data, args)
+
+
+def compute_lib_score_and_book_list(lib, days_left, available_books, scores):
+    if (lib.signup_time >= days_left):
+        return 0, []
+    days_left -= lib.signup_time
+    final_score = 0
+    sorted_books = sort_books(scores, lib.books)
+
+    #remove already shiped books
+    for book_index in range(len(sorted_books)):
+        if not available_books[sorted_books[book_index]]:
+            sorted_books.pop(book_index)
+            book_index -= 1
+
+    #compute score
+    nb_books = 0
+    for i in range(days_left):
+        for j in range(lib.nb_ship):
+            if (nb_books >= len(sorted_books)):
+                break
+            final_score += scores[nb_books]
+            nb_books += 1
+
+    return (final_score, sorted_books[:nb_books + 1])
+
+def sort_books(scores, books):
+    sorted_books = []
+    while len(books) > 0:
+        max_score_book_index = 0
+        for i in range(len(books)):
+            if scores[books[max_score_book_index]] < scores[books[i]]:
+                max_score_book_index = i
+        sorted_books.append(books[max_score_book_index])
+        books.pop(max_score_book_index)
+    return sorted_books
+
+
+def computeAntoine(input_data: ComputeInput, args: CLIArgs) -> ComputeOutput:
+    libraries, scores, nb_days = input_data
+    day_counter = 0
+    available_books = [True for _ in range(len(scores))]
+    output = OutputLibs()
+    total_score = 0
+    while len(libraries) > 0 and nb_days > day_counter:
+        best_score, best_book_list = compute_lib_score_and_book_list(libraries[0], nb_days - day_counter, available_books, scores)
+        best_lib = 0
+        ind = 0
+        for lib in libraries:
+            score, book_list = compute_lib_score_and_book_list(lib, nb_days - day_counter, available_books, scores)
+            if score > best_score:
+                best_score = score
+                best_book_list = book_list
+                best_lib = ind
+            ind += 1
+        output.add_library(best_lib, best_book_list)
+        for i in best_book_list:
+            available_books[i] = False
+        day_counter += libraries[best_lib].signup_time
+        libraries.pop(best_lib)
+        total_score += best_score
+    print(total_score)
+    return str(output)
 
 
 if __name__ == '__main__':
@@ -189,4 +252,4 @@ if __name__ == '__main__':
 
     output_data = compute(input_data, args)
 
-    # save_output(args.output_file, output_data)
+    save_output(args.output_file, output_data)
