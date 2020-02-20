@@ -32,6 +32,25 @@ class Library:
     def __repr__(self):
         return f'{" ".join(map(str, self.books))}-{self.signup_time}-{self.nb_ship}'
 
+
+class OutputLibs:
+    def __init__(self):
+        self.libs = []
+
+    def add_library(self, lib: int, books_sent: List[int]):
+        self.libs.append((lib, books_sent))
+
+    def pop(self):
+        self.libs.pop()
+
+    def __repr__(self):
+        r = f'{len(self.libs)}'
+        for lib in self.libs:
+            r += f'{lib[0]} {len(lib[1])}'
+            r += ' '.join(map(str, lib[1]))
+        return r
+
+
 # Type definitions
 ComputeOutput = str
 ComputeInput = (List[Library], List[int], int)
@@ -55,15 +74,14 @@ def parse_input(file: Path) -> ComputeInput:
     lines = data.split('\n')
 
     nb_books, nb_libraries, nb_days = map(int, lines[0].strip().split(' '))
-    scores = map(int, lines[1].strip().split(' '))
+    scores = list(map(int, lines[1].strip().split(' ')))
 
     libraries = []
     for lib in range(nb_libraries):
         _, signup, ship = map(int, lines[2 + 2 * lib].strip().split(' '))
-        books = map(int, lines[3 + 2 * lib].strip().split(' '))
+        books = list(map(int, lines[3 + 2 * lib].strip().split(' ')))
+        books.sort(key=lambda i: -scores[i])
         libraries.append(Library(books, signup, ship))
-
-    print(libraries)
 
     return (libraries, scores, nb_days)
 
@@ -76,6 +94,42 @@ def save_output(file: Path, data: str) -> None:
     file.write_text(data)
 
 
+    # nb_libs
+    # for each lib done:
+    #   lib_no nb_books
+    #   ' '.join(id_books)
+
+
+def brute_force(input_data: ComputeInput) -> ComputeOutput:
+    libraries, scores, nb_days = input_data
+    output_libs = OutputLibs()
+    max_score = 0
+    max_res_str = ''
+
+    def save(score: int):
+        if score <= max_score:
+            return
+
+
+
+    def recurse(libs: List[Library], cur_day: int):
+        max_score = 0
+        for i, lib in enumerate(libs):
+            if cur_day + lib.signup_time >= nb_days:
+                continue
+
+            rest_day = nb_days - cur_day - lib.signup_time
+            nb_books = min(rest_day * lib.nb_ship, len(lib.books))
+
+            books_sent = lib.books[:nb_books]
+            # cur_score = score + sum(scores[book] for book in books_sent)
+
+            # cur_score += recurse(libs[i+1:], cur_day + lib.signup_time)
+
+
+
+    recurse(libraries, 0)
+
 def compute(input_data: ComputeInput, args: CLIArgs) -> ComputeOutput:
     # TODO: Compute things
     # Possibly useful classes/functions:
@@ -83,6 +137,8 @@ def compute(input_data: ComputeInput, args: CLIArgs) -> ComputeOutput:
     # - Pool: Process pool for concurrent usage
     # - tqdm: Progress bar
     # - np: Numpy for optimizations
+
+
 
     return input_data
 
