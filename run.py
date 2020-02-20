@@ -114,9 +114,11 @@ def brute_force(input_data: ComputeInput, args) -> ComputeOutput:
         if score <= max_score:
             return
 
+        print(f'saving: score {score}')
         max_score = score
         max_res_str = str(output_libs)
         save_output(args.output_file, max_res_str)
+
 
 
     def recurse(libs: List[Library], cur_day: int, offset: int = 0):
