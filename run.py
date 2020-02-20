@@ -24,11 +24,12 @@ class CLIArgs:
 
 
 class Library:
-    def __init__(self, number, books, signup, ship):
+    def __init__(self, number, books, signup, ship, scores):
         self.number: int = number
         self.books: List[int] = books
         self.signup_time: int = signup
         self.nb_ship: int = ship
+        self.book_scores: List[int] = [sum(scores[book] for book in books[:i]) for i in range(1, len(books))]
 
     def __repr__(self):
         return f'{" ".join(map(str, self.books))}-{self.signup_time}-{self.nb_ship}'
@@ -85,7 +86,7 @@ def parse_input(file: Path) -> ComputeInput:
         _, signup, ship = map(int, lines[2 + 2 * lib].strip().split(' '))
         books = list(map(int, lines[3 + 2 * lib].strip().split(' ')))
         books.sort(key=lambda i: -scores[i])
-        libraries.append(Library(lib, books, signup, ship))
+        libraries.append(Library(lib, books, signup, ship, scores))
 
     return (libraries, scores, nb_days)
 
@@ -138,7 +139,7 @@ def brute_force(input_data: ComputeInput, args) -> ComputeOutput:
             nb_books = min(rest_day * lib.nb_ship, len(lib.books))
 
             books_sent = lib.books[:nb_books]
-            cur_score = sum(scores[book] for book in books_sent)
+            cur_score = lib.book_scores[nb_books]
             output_libs.add_library(lib.number + i, books_sent)
             save(cur_score)
             recurse(libs[i+1:], rest_days - lib.signup_time, offset + i + 1)
@@ -156,7 +157,7 @@ def brute_force(input_data: ComputeInput, args) -> ComputeOutput:
                 nb_books = min(rest_day * lib.nb_ship, len(lib.books))
 
                 books_sent = lib.books[:nb_books]
-                cur_score = sum(scores[book] for book in books_sent)
+                cur_score = lib.book_scores[nb_books]
                 output_libs.add_library(lib.number + i, books_sent)
                 save(cur_score)
                 fut.append(exe.submit(recurse, libs[i+1:], rest_days - lib.signup_time, offset + i + 1))
