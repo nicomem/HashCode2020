@@ -34,7 +34,7 @@ class Library:
 
 # Type definitions
 ComputeOutput = str
-ComputeInput = List[Library]
+ComputeInput = (List[Library], List[int])
 
 def parse_arguments() -> CLIArgs:
     parser = argparse.ArgumentParser()
@@ -65,7 +65,7 @@ def parse_input(file: Path) -> ComputeInput:
 
     print(libraries)
 
-    return libraries
+    return (libraries, scores)
 
 
 def save_output(file: Path, data: str) -> None:
