@@ -145,9 +145,13 @@ def brute_force(input_data: ComputeInput, args) -> ComputeOutput:
             output_libs.pop()
 
     def recurse1(libs: List[Library], rest_days: int, offset: int = 0):
+        first_no = first(libs, lambda l: l.signup_time >= rest_days)
+        if first_no is not None:
+            libs = libs[:first_no]
+
         with ProcessPoolExecutor() as exe:
             fut = []
-            for i, lib in enumerate(lib for lib in libs if lib.signup_time < rest_days):
+            for i, lib in enumerate(libs):
                 rest_day = rest_days - lib.signup_time
                 nb_books = min(rest_day * lib.nb_ship, len(lib.books))
 
