@@ -40,6 +40,8 @@ class OutputLibs:
         self.libs = []
 
     def add_library(self, lib: int, books_sent: List[int]):
+        if books_sent == []:
+            print('WARNING: list empty add_lib')
         self.libs.append((lib, books_sent))
 
     def pop(self):
@@ -184,64 +186,51 @@ def compute(input_data: ComputeInput, args: CLIArgs) -> ComputeOutput:
 
 
 def compute_lib_score_and_book_list(lib, days_left, available_books, scores):
-    if (lib.signup_time >= days_left):
-        return 0, []
     days_left -= lib.signup_time
-    final_score = 0
-    sorted_books = sort_books(scores, lib.books)
 
     #remove already shiped books
-    for book_index in range(len(sorted_books)):
-        if not available_books[sorted_books[book_index]]:
-            sorted_books.pop(book_index)
-            book_index -= 1
+    unique_books = [book for book in lib.books if available_books[book]]
 
     #compute score
-    nb_books = 0
-    for i in range(days_left):
-        for j in range(lib.nb_ship):
-            if (nb_books >= len(sorted_books)):
-                break
-            final_score += scores[nb_books]
-            nb_books += 1
+    nb_books = min(days_left * lib.nb_ship, len(unique_books))
+    final_score = sum(scores[book] for book in unique_books[:nb_books])
 
-    return (final_score, sorted_books[:nb_books + 1])
-
-def sort_books(scores, books):
-    sorted_books = []
-    while len(books) > 0:
-        max_score_book_index = 0
-        for i in range(len(books)):
-            if scores[books[max_score_book_index]] < scores[books[i]]:
-                max_score_book_index = i
-        sorted_books.append(books[max_score_book_index])
-        books.pop(max_score_book_index)
-    return sorted_books
-
+    return (final_score, unique_books[:nb_books])
 
 def computeAntoine(input_data: ComputeInput, args: CLIArgs) -> ComputeOutput:
-    libraries, scores, nb_days = input_data
-    day_counter = 0
+    libs, scores, nb_days = input_data
     available_books = [True for _ in range(len(scores))]
     output = OutputLibs()
     total_score = 0
-    while len(libraries) > 0 and nb_days > day_counter:
-        best_score, best_book_list = compute_lib_score_and_book_list(libraries[0], nb_days - day_counter, available_books, scores)
-        best_lib = 0
-        ind = 0
-        for lib in libraries:
-            score, book_list = compute_lib_score_and_book_list(lib, nb_days - day_counter, available_books, scores)
+
+    libs.sort(key=lambda l: l.signup_time)
+    first_no = first(libs, lambda l: l.signup_time >= nb_days)
+    if first_no is not None:
+        libs = libs[:first_no]
+
+    while len(libs) > 0 and nb_days > 0:
+        best_score, best_book_list = 0, []
+        best_lib = None
+        best_lib_i = 0
+        for i, lib in enumerate(libs):
+            score, book_list = compute_lib_score_and_book_list(lib, nb_days, available_books, scores)
             if score > best_score:
                 best_score = score
                 best_book_list = book_list
-                best_lib = ind
-            ind += 1
-        output.add_library(best_lib, best_book_list)
+                best_lib = lib
+                best_lib_i = i
+
+        output.add_library(best_lib.number, best_book_list)
         for i in best_book_list:
             available_books[i] = False
-        day_counter += libraries[best_lib].signup_time
-        libraries.pop(best_lib)
+        nb_days -= best_lib.signup_time
+        libs.pop(best_lib_i)
         total_score += best_score
+
+        first_no = first(libs, lambda l: l.signup_time >= nb_days)
+        if first_no is not None:
+            libs = libs[:first_no]
+
     print(total_score)
     return str(output)
 
