@@ -44,11 +44,14 @@ class OutputLibs:
         self.libs.pop()
 
     def __repr__(self):
-        r = f'{len(self.libs)}'
+        r = f'{len(self.libs)}\n'
         for lib in self.libs:
-            r += f'{lib[0]} {len(lib[1])}'
-            r += ' '.join(map(str, lib[1]))
+            r += f'{lib[0]} {len(lib[1])}\n'
+            r += ' '.join(map(str, lib[1])) + '\n'
         return r
+
+    def __str__(self):
+        return self.__repr__()
 
 
 # Type definitions
@@ -100,20 +103,23 @@ def save_output(file: Path, data: str) -> None:
     #   ' '.join(id_books)
 
 
-def brute_force(input_data: ComputeInput) -> ComputeOutput:
+def brute_force(input_data: ComputeInput, args) -> ComputeOutput:
     libraries, scores, nb_days = input_data
     output_libs = OutputLibs()
     max_score = 0
     max_res_str = ''
 
     def save(score: int):
+        nonlocal max_score
         if score <= max_score:
             return
 
+        max_score = score
+        max_res_str = str(output_libs)
+        save_output(args.output_file, max_res_str)
 
 
-    def recurse(libs: List[Library], cur_day: int):
-        max_score = 0
+    def recurse(libs: List[Library], cur_day: int, offset: int = 0):
         for i, lib in enumerate(libs):
             if cur_day + lib.signup_time >= nb_days:
                 continue
@@ -122,13 +128,15 @@ def brute_force(input_data: ComputeInput) -> ComputeOutput:
             nb_books = min(rest_day * lib.nb_ship, len(lib.books))
 
             books_sent = lib.books[:nb_books]
-            # cur_score = score + sum(scores[book] for book in books_sent)
-
-            # cur_score += recurse(libs[i+1:], cur_day + lib.signup_time)
-
+            cur_score = sum(scores[book] for book in books_sent)
+            output_libs.add_library(offset + i, books_sent)
+            save(cur_score)
+            recurse(libs[i+1:], cur_day + lib.signup_time, offset + i + 1)
 
 
     recurse(libraries, 0)
+
+    return max_res_str
 
 def compute(input_data: ComputeInput, args: CLIArgs) -> ComputeOutput:
     # TODO: Compute things
@@ -138,9 +146,7 @@ def compute(input_data: ComputeInput, args: CLIArgs) -> ComputeOutput:
     # - tqdm: Progress bar
     # - np: Numpy for optimizations
 
-
-
-    return input_data
+    return brute_force(input_data, args)
 
 
 if __name__ == '__main__':
@@ -150,4 +156,4 @@ if __name__ == '__main__':
 
     output_data = compute(input_data, args)
 
-    save_output(args.output_file, output_data)
+    # save_output(args.output_file, output_data)
