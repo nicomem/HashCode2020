@@ -185,17 +185,32 @@ def compute(input_data: ComputeInput, args: CLIArgs) -> ComputeOutput:
     return computeAntoine(input_data, args)
 
 
-def compute_lib_score_and_book_list(lib, days_left, available_books, scores):
+def compute_lib_score_and_book_list(lib, days_left, available_books, scores, histo):
     days_left -= lib.signup_time
 
     #remove already shiped books
     unique_books = [book for book in lib.books if available_books[book]]
-
+    unique_books = sortBooks(unique_books, histo, scores)
     #compute score
     nb_books = min(days_left * lib.nb_ship, len(unique_books))
     final_score = sum(scores[book] for book in unique_books[:nb_books])
 
     return (final_score, unique_books[:nb_books])
+
+def histoBooks(libs, nb_books):
+    histo = [0 for _ in range(nb_books)]
+    for lib in libs:
+        for book in lib.books:
+            histo[book] += 1
+    return histo
+
+def sortBooks(books, histo, scores):
+    computed_scores = list(scores)
+    size = len(scores)
+    for book in books:
+        computed_scores[book] *= (size - histo[book])
+    books.sort(key= lambda b: -computed_scores[b])
+    return books
 
 def computeAntoine(input_data: ComputeInput, args: CLIArgs) -> ComputeOutput:
     libs, scores, nb_days = input_data
@@ -208,12 +223,14 @@ def computeAntoine(input_data: ComputeInput, args: CLIArgs) -> ComputeOutput:
     if first_no is not None:
         libs = libs[:first_no]
 
+    histo = histoBooks(libs, len(scores))
+
     while len(libs) > 0 and nb_days > 0:
         best_score, best_book_list = 0, []
         best_lib = None
         best_lib_i = 0
         for i, lib in enumerate(libs):
-            score, book_list = compute_lib_score_and_book_list(lib, nb_days, available_books, scores)
+            score, book_list = compute_lib_score_and_book_list(lib, nb_days, available_books, scores, histo)
             if score > best_score:
                 best_score = score
                 best_book_list = book_list
