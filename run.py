@@ -129,7 +129,8 @@ def brute_force(input_data: ComputeInput, args) -> ComputeOutput:
         max_res_str = str(output_libs)
         save_output(args.output_file.with_suffix(f'.score_{score}'), max_res_str)
 
-    def recurse(libs: List[Library], rest_days: int, offset: int = 0):
+
+    def recurse(libs: List[Library], rest_days: int):
         first_no = first(libs, lambda l: l.signup_time >= rest_days)
         if first_no is not None:
             libs = libs[:first_no]
@@ -139,13 +140,13 @@ def brute_force(input_data: ComputeInput, args) -> ComputeOutput:
             nb_books = min(rest_day * lib.nb_ship, len(lib.books))
 
             books_sent = lib.books[:nb_books]
-            cur_score = lib.book_scores[nb_books]
+            cur_score = lib.book_scores[nb_books - 1]
             output_libs.add_library(lib.number + i, books_sent)
             save(cur_score)
-            recurse(libs[i+1:], rest_days - lib.signup_time, offset + i + 1)
+            recurse(libs[i+1:], rest_days - lib.signup_time)
             output_libs.pop()
 
-    def recurse1(libs: List[Library], rest_days: int, offset: int = 0):
+    def recurse1(libs: List[Library], rest_days: int):
         first_no = first(libs, lambda l: l.signup_time >= rest_days)
         if first_no is not None:
             libs = libs[:first_no]
@@ -157,10 +158,10 @@ def brute_force(input_data: ComputeInput, args) -> ComputeOutput:
                 nb_books = min(rest_day * lib.nb_ship, len(lib.books))
 
                 books_sent = lib.books[:nb_books]
-                cur_score = lib.book_scores[nb_books]
+                cur_score = lib.book_scores[nb_books - 1]
                 output_libs.add_library(lib.number + i, books_sent)
                 save(cur_score)
-                fut.append(exe.submit(recurse, libs[i+1:], rest_days - lib.signup_time, offset + i + 1))
+                fut.append(exe.submit(recurse, libs[i+1:], rest_days - lib.signup_time))
                 output_libs.pop()
 
             for _ in tqdm(as_completed(fut)):
