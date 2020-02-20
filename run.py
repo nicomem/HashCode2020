@@ -24,7 +24,8 @@ class CLIArgs:
 
 
 class Library:
-    def __init__(self, books, signup, ship):
+    def __init__(self, number, books, signup, ship):
+        self.number: int = number
         self.books: List[int] = books
         self.signup_time: int = signup
         self.nb_ship: int = ship
@@ -84,7 +85,7 @@ def parse_input(file: Path) -> ComputeInput:
         _, signup, ship = map(int, lines[2 + 2 * lib].strip().split(' '))
         books = list(map(int, lines[3 + 2 * lib].strip().split(' ')))
         books.sort(key=lambda i: -scores[i])
-        libraries.append(Library(books, signup, ship))
+        libraries.append(Library(lib, books, signup, ship))
 
     return (libraries, scores, nb_days)
 
@@ -102,12 +103,20 @@ def save_output(file: Path, data: str) -> None:
     #   lib_no nb_books
     #   ' '.join(id_books)
 
+def first(l: list, cond):
+    for i, e in enumerate(l):
+        if cond(e):
+            return i
+
+    return None
 
 def brute_force(input_data: ComputeInput, args) -> ComputeOutput:
     libraries, scores, nb_days = input_data
     output_libs = OutputLibs()
     max_score = 0
     max_res_str = ''
+
+    libraries.sort(key=lambda l: l.signup_time)
 
     def save(score: int):
         nonlocal max_score
@@ -117,26 +126,43 @@ def brute_force(input_data: ComputeInput, args) -> ComputeOutput:
         print(f'saving: score {score}')
         max_score = score
         max_res_str = str(output_libs)
-        save_output(args.output_file, max_res_str)
+        save_output(args.output_file.with_suffix(f'.score_{score}'), max_res_str)
 
+    def recurse(libs: List[Library], rest_days: int, offset: int = 0):
+        first_no = first(libs, lambda l: l.signup_time >= rest_days)
+        if first_no is not None:
+            libs = libs[:first_no]
 
-
-    def recurse(libs: List[Library], cur_day: int, offset: int = 0):
         for i, lib in enumerate(libs):
-            if cur_day + lib.signup_time >= nb_days:
-                continue
-
-            rest_day = nb_days - cur_day - lib.signup_time
+            rest_day = rest_days - lib.signup_time
             nb_books = min(rest_day * lib.nb_ship, len(lib.books))
 
             books_sent = lib.books[:nb_books]
             cur_score = sum(scores[book] for book in books_sent)
             output_libs.add_library(offset + i, books_sent)
             save(cur_score)
-            recurse(libs[i+1:], cur_day + lib.signup_time, offset + i + 1)
+            recurse(libs[i+1:], rest_days - lib.signup_time, offset + i + 1)
+            output_libs.pop()
+
+    def recurse1(libs: List[Library], rest_days: int, offset: int = 0):
+        with ProcessPoolExecutor() as exe:
+            fut = []
+            for i, lib in enumerate(lib for lib in libs if lib.signup_time < rest_days):
+                rest_day = rest_days - lib.signup_time
+                nb_books = min(rest_day * lib.nb_ship, len(lib.books))
+
+                books_sent = lib.books[:nb_books]
+                cur_score = sum(scores[book] for book in books_sent)
+                output_libs.add_library(offset + i, books_sent)
+                save(cur_score)
+                fut.append(exe.submit(recurse, libs[i+1:], rest_days - lib.signup_time, offset + i + 1))
+                output_libs.pop()
+
+            for _ in tqdm(as_completed(fut)):
+                pass
 
 
-    recurse(libraries, 0)
+    recurse1(libraries, nb_days)
 
     return max_res_str
 
